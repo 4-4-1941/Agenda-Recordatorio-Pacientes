@@ -689,7 +689,7 @@
 <!-- PIN LOCK SCREEN -->
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">
-    📅 Agenda · Recordatorio · Citas
+    🗓️ Agenda · Recordatorio · Citas
     <div class="pin-sub">Acceso seguro</div>
   </div>
   <div class="pin-dots" id="pin-dots">
@@ -733,7 +733,7 @@
   </div>
   <div class="topbar-actions">
     <button class="btn-icon" onclick="checkUpcoming()">🔔 Pendientes</button>
-    <button class="btn-icon" onclick="initNotifications()" title="Activar notificaciones automáticas">🔕 Notif.</button>
+    <button class="btn-icon" onclick="initNotifications()" id="notif-toggle-btn" title="Activar notificaciones automáticas">🔕 Notif.</button>
   </div>
 </div>
 
@@ -1325,7 +1325,7 @@ function deleteAppointment(id) {
   const name = p ? p.name : 'este paciente';
   const dt = new Date(a.date + 'T' + a.time);
   const dateStr = dt.toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long'});
-  const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+  const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit', hour12: true});
 
   let msg = `¿Eliminar la cita de ${name}\n📅 ${dateStr} a las ${timeStr}?`;
   if (a.sent24 || a.sent1) {
@@ -1368,7 +1368,7 @@ function renderAppointments() {
     const dt = new Date(dtStr);
     const day = dt.getDate().toString().padStart(2,'0');
     const month = dt.toLocaleDateString('es', {month:'short'});
-    const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+    const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit', hour12: true});
     const diff = dt - now;
     const hrs = diff / 3600000;
 
@@ -1419,7 +1419,7 @@ function openStatusModal(aptId) {
   const p = DB.patients().find(x => x.id === a.patientId);
   const dt = new Date(a.date + 'T' + a.time);
   const dateStr = dt.toLocaleDateString('es', {day:'numeric', month:'long'});
-  const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+  const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit', hour12: true});
   document.getElementById('status-patient-info').textContent = `${p ? p.name : ''} · ${dateStr} a las ${timeStr}`;
   openModal('modal-status');
 }
@@ -1478,7 +1478,7 @@ function renderHistory() {
   container.innerHTML = apts.map(a => {
     const dt = new Date(a.date + 'T' + a.time);
     const dateStr = dt.toLocaleDateString('es', {day:'numeric', month:'short', year:'numeric'});
-    const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+    const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit', hour12: true});
     const badge = a.status
       ? `<span class="status-badge ${a.status}">${statusLabels[a.status]}</span>`
       : `<span class="status-badge pendiente" style="cursor:pointer;" onclick="openStatusModal('${a.id}')">⏳ Marcar</span>`;
@@ -1535,7 +1535,7 @@ function greetingByHour() {
 
 function buildMsg(patient, apt, type) {
   const dt = new Date(apt.date + 'T' + apt.time);
-  const timeStr = dt.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  const timeStr = dt.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: true });
   const firstName = patient.name.split(' ')[0];
   const greeting = greetingByHour();
   const modeStr = apt.mode === 'virtual' ? 'nuestra sesión virtual' : apt.mode === 'telefonica' ? 'nuestra sesión telefónica' : 'nuestra cita';
@@ -1638,7 +1638,7 @@ function renderDashboard() {
       const p = patients.find(x => x.id === a.patientId);
       if (!p) return '';
       const dt = new Date(a.date + 'T' + a.time);
-      const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+      const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit', hour12: true});
       return `
       <div class="today-apt">
         <div class="today-apt-left">
@@ -1661,7 +1661,7 @@ function renderDashboard() {
       if (!p) return '';
       const dt = new Date(a.date + 'T' + a.time);
       const dateStr = dt.toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long'});
-      const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+      const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit', hour12: true});
       return `
       <div class="today-apt">
         <div class="today-apt-left">
@@ -1837,6 +1837,7 @@ updateAptBadge();
 async function requestNotifPermission() {
   if (!('Notification' in window)) return false;
   if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
   const result = await Notification.requestPermission();
   return result === 'granted';
 }
@@ -1851,7 +1852,7 @@ function scheduleNotifications() {
     const p = DB.patients().find(x => x.id === a.patientId);
     if (!p) return;
     const firstName = p.name.split(' ')[0];
-    const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+    const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit', hour12: true});
 
     // 24h before
     const ms24 = diff - (24 * 3600000);
@@ -1887,14 +1888,22 @@ function scheduleNotifications() {
 
 async function initNotifications() {
   const granted = await requestNotifPermission();
+  const btn = document.getElementById('notif-toggle-btn');
   if (granted) {
+    if (btn) btn.innerHTML = '🔔 Notif. activas';
     scheduleNotifications();
-    // Re-schedule every hour in case new appointments were added
-    setInterval(scheduleNotifications, 3600000);
+    if (!window._notifInterval) {
+      window._notifInterval = setInterval(scheduleNotifications, 3600000);
+    }
+  } else {
+    if (btn) btn.innerHTML = '🔕 Notif.';
+    if (Notification.permission === 'denied') {
+      alert('Las notificaciones están bloqueadas en este navegador.\n\nPara activarlas: toca el ícono de candado/info junto a la URL → Permisos → Notificaciones → Permitir.');
+    }
   }
 }
 
-// Auto-init notifications on load
+// Auto-request notifications on load (asks once, then app remembers)
 initNotifications();
 
 // Re-schedule when a new appointment is saved
