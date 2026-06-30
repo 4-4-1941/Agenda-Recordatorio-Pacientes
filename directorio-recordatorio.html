@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Agenda · Recordatorio · Citas</title>
+<meta name="description" content="Directorio de pacientes y recordatorios por WhatsApp">
+<meta name="theme-color" content="#1a4a4a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Agenda Citas">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap');
+
+  :root {
+    --teal-deep: #1a4a4a;
+    --teal-mid: #2d6e6e;
+    --teal-soft: #4a9494;
+    --teal-pale: #d0eaea;
+    --teal-ghost: #eef7f7;
+    --amber: #e8a020;
+    --amber-pale: #fdf3dc;
+    --red-alert: #c0392b;
+    --red-pale: #fdecea;
+    --green-ok: #1e7d4a;
+    --green-pale: #e6f5ed;
+    --text-primary: #0f2c2c;
+    --text-secondary: #3d6060;
+    --text-muted: #7a9e9e;
+    --border: #c5dede;
+    --surface: #ffffff;
+    --bg: #f2f9f9;
+    --shadow: 0 2px 12px rgba(26,74,74,0.10);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+
+  /* ─── TOPBAR ─── */
+  .topbar {
+    background: var(--teal-deep);
+    color: white;
+    padding: 0 20px;
+    height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .topbar-brand svg { opacity: 0.9; }
+  .brand-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    letter-spacing: 0.02em;
+  }
+  .brand-sub {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .topbar-actions { display: flex; gap: 8px; }
+  .btn-icon {
+    background: rgba(255,255,255,0.12);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.15s;
+  }
+  .btn-icon:hover { background: rgba(255,255,255,0.22); }
+
+  /* ─── TABS ─── */
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+    padding: 0 20px;
+    gap: 4px;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 12px 18px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tab:hover { color: var(--teal-mid); }
+  .tab.active {
+    color: var(--teal-deep);
+    border-bottom-color: var(--teal-deep);
+    font-weight: 600;
+  }
+  .tab-badge {
+    background: var(--amber);
+    color: white;
+    border-radius: 10px;
+    font-size: 0.68rem;
+    padding: 1px 6px;
+    font-weight: 700;
+  }
+
+  /* ─── LAYOUT ─── */
+  .page { display: none; padding: 20px; max-width: 900px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* ─── FORMS ─── */
+  .form-group { margin-bottom: 14px; }
+  label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    background: var(--surface);
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--teal-soft);
+    box-shadow: 0 0 0 3px rgba(74,148,148,0.12);
+  }
+  textarea { resize: vertical; min-height: 70px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ─── BUTTONS ─── */
+  .btn {
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-primary {
+    background: var(--teal-deep);
+    color: white;
+  }
+  .btn-primary:hover { background: var(--teal-mid); }
+  .btn-secondary {
+    background: var(--teal-ghost);
+    color: var(--teal-deep);
+    border: 1.5px solid var(--teal-pale);
+  }
+  .btn-secondary:hover { background: var(--teal-pale); }
+  .btn-whatsapp {
+    background: #25D366;
+    color: white;
+  }
+  .btn-whatsapp:hover { background: #1da851; }
+  .btn-danger {
+    background: var(--red-pale);
+    color: var(--red-alert);
+    border: 1px solid #f5c6c2;
+  }
+  .btn-danger:hover { background: #fad7d4; }
+  .btn-sm { padding: 5px 11px; font-size: 0.78rem; }
+  .btn-full { width: 100%; justify-content: center; }
+
+  /* ─── PATIENT LIST ─── */
+  .patient-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+    background: var(--surface);
+    transition: box-shadow 0.15s;
+  }
+  .patient-item:hover { box-shadow: var(--shadow); }
+  .patient-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--teal-pale);
+    color: var(--teal-deep);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .patient-info { flex: 1; min-width: 0; }
+  .patient-name { font-weight: 600; font-size: 0.92rem; }
+  .patient-phone { font-size: 0.78rem; color: var(--text-muted); margin-top: 1px; }
+  .patient-tags { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  .tag {
+    font-size: 0.68rem;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 600;
+    background: var(--teal-ghost);
+    color: var(--teal-mid);
+    border: 1px solid var(--teal-pale);
+  }
+  .tag.tdah { background: #fff3e0; color: #e65100; border-color: #ffcc80; }
+  .tag.ansiedad { background: #ede7f6; color: #4527a0; border-color: #ce93d8; }
+  .tag.resistencia { background: #fce4ec; color: #880e4f; border-color: #f48fb1; }
+  .patient-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  /* ─── APPOINTMENT LIST ─── */
+  .apt-item {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .apt-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface);
+  }
+  .apt-date-block {
+    background: var(--teal-deep);
+    color: white;
+    border-radius: 8px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .apt-day { font-size: 1.2rem; font-weight: 700; line-height: 1; }
+  .apt-month { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8; }
+  .apt-info { flex: 1; }
+  .apt-patient-name { font-weight: 600; font-size: 0.95rem; }
+  .apt-time { font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+  .apt-reminders {
+    padding: 8px 16px 12px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .reminder-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1.5px solid;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .reminder-pill.pending-24 {
+    background: var(--amber-pale);
+    color: #8a5a00;
+    border-color: #f0c060;
+  }
+  .reminder-pill.pending-1 {
+    background: var(--red-pale);
+    color: var(--red-alert);
+    border-color: #f5a09a;
+  }
+  .reminder-pill.sent {
+    background: var(--green-pale);
+    color: var(--green-ok);
+    border-color: #80cfa0;
+    opacity: 0.7;
+    cursor: default;
+  }
+  .reminder-pill.now {
+    background: #e8f4fd;
+    color: #1565c0;
+    border-color: #90caf9;
+  }
+  .reminder-pill:hover:not(.sent) { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+
+  /* ─── DASHBOARD ─── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-num {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: 'Playfair Display', serif;
+    color: var(--teal-deep);
+    line-height: 1;
+  }
+  .stat-label { font-size: 0.73rem; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .today-apt {
+    background: var(--teal-ghost);
+    border: 1.5px solid var(--teal-pale);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .today-apt-left .name { font-weight: 600; font-size: 0.9rem; }
+  .today-apt-left .time { font-size: 0.78rem; color: var(--text-muted); }
+  
+  .alert-banner {
+    background: var(--amber-pale);
+    border: 1.5px solid #f0c060;
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-size: 0.83rem;
+    color: #6b4000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+
+  /* ─── PIN LOCK ─── */
+  .pin-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--teal-deep);
+    z-index: 999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+  }
+  .pin-screen.active { display: flex; }
+  .pin-logo {
+    font-family: 'Playfair Display', serif;
+    color: white;
+    font-size: 1.6rem;
+    text-align: center;
+    opacity: 0.95;
+  }
+  .pin-sub { color: rgba(255,255,255,0.6); font-size: 0.8rem; margin-top: 4px; }
+  .pin-dots {
+    display: flex;
+    gap: 14px;
+  }
+  .pin-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.5);
+    background: transparent;
+    transition: background 0.15s;
+  }
+  .pin-dot.filled { background: white; border-color: white; }
+  .pin-error { color: #ff8a80; font-size: 0.82rem; min-height: 1.2em; }
+  .pin-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 72px);
+    gap: 12px;
+  }
+  .pin-btn {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.08);
+    color: white;
+    font-size: 1.4rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: background 0.1s, transform 0.08s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pin-btn:active { background: rgba(255,255,255,0.22); transform: scale(0.93); }
+  .pin-btn.zero { grid-column: 2; }
+  .pin-btn.del { background: transparent; border-color: transparent; font-size: 1.1rem; }
+  .pin-setup-hint { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-align: center; max-width: 240px; }
+  .pin-link {
+    color: rgba(255,255,255,0.45);
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-decoration: underline;
+    background: none; border: none;
+  }
+
+  /* ─── EMPTY STATE ─── */
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+  }
+  .empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .empty-text { font-size: 0.88rem; }
+
+  /* ─── MODAL ─── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,30,30,0.5);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-title { font-weight: 700; font-size: 1rem; }
+  .modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    line-height: 1;
+    padding: 2px 6px;
+  }
+  .modal-body { padding: 20px; }
+  .modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  /* ─── SEARCH ─── */
+  .search-bar {
+    position: relative;
+    margin-bottom: 14px;
+  }
+  .search-bar input {
+    padding-left: 34px;
+  }
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  /* ─── WHATSAPP MSG PREVIEW ─── */
+  .wa-preview {
+    background: #e9f5de;
+    border-radius: 10px 10px 10px 2px;
+    padding: 12px 14px;
+    font-size: 0.88rem;
+    color: #1a2a1a;
+    margin: 12px 0;
+    border: 1px solid #c8e6a0;
+    line-height: 1.5;
+  }
+  .wa-preview-label { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* ─── AUTOCOMPLETE ─── */
+  .autocomplete-wrap { position: relative; }
+  .autocomplete-input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    background: var(--surface);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .autocomplete-input:focus {
+    border-color: var(--teal-soft);
+    box-shadow: 0 0 0 3px rgba(74,148,148,0.12);
+  }
+  .autocomplete-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: var(--surface);
+    border: 1.5px solid var(--teal-pale);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 8px 24px rgba(26,74,74,0.15);
+    z-index: 300;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+  }
+  .autocomplete-list.open { display: block; }
+  .autocomplete-item {
+    padding: 9px 14px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--teal-ghost);
+    transition: background 0.1s;
+  }
+  .autocomplete-item:last-child { border-bottom: none; }
+  .autocomplete-item:hover, .autocomplete-item.selected { background: var(--teal-ghost); }
+  .autocomplete-item .ac-name { font-weight: 600; color: var(--text-primary); }
+  .autocomplete-item .ac-phone { font-size: 0.75rem; color: var(--text-muted); }
+  .autocomplete-item .ac-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--teal-pale);
+    color: var(--teal-deep);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.75rem; flex-shrink: 0;
+  }
+  .autocomplete-empty {
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .selected-patient-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--teal-ghost);
+    border: 1.5px solid var(--teal-pale);
+    border-radius: var(--radius-sm);
+    padding: 7px 12px;
+    margin-top: 6px;
+  }
+  .selected-patient-chip .chip-name { font-weight: 600; font-size: 0.88rem; flex: 1; }
+  .chip-clear {
+    background: none; border: none;
+    color: var(--text-muted); cursor: pointer;
+    font-size: 1rem; padding: 0 2px;
+  }
+
+  /* ─── VCARD ─── */
+  .vcf-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--teal-mid);
+    background: none;
+    border: 1.5px dashed var(--teal-pale);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    cursor: pointer;
+    width: 100%;
+    justify-content: center;
+    margin-top: 6px;
+    transition: background 0.15s;
+  }
+  .vcf-btn:hover { background: var(--teal-ghost); }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .patient-actions { flex-direction: column; }
+    .topbar { padding: 0 12px; }
+    .page { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- PIN LOCK SCREEN -->
+<div class="pin-screen" id="pin-screen">
+  <div class="pin-logo">
+    📅 Agenda · Recordatorio · Citas
+    <div class="pin-sub">Acceso seguro</div>
+  </div>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-error" id="pin-error"></div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <button class="pin-btn zero" onclick="pinPress('0')">0</button>
+    <button class="pin-btn del" onclick="pinDel()">⌫</button>
+  </div>
+  <div class="pin-setup-hint" id="pin-hint"></div>
+  <button class="pin-link" id="pin-reset-btn" onclick="pinReset()" style="display:none">¿Olvidaste tu PIN? Restablecer</button>
+</div>
+
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      <line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/>
+      <line x1="8" y1="18" x2="8" y2="18"/><line x1="12" y1="18" x2="12" y2="18"/>
+    </svg>
+    <div>
+      <div class="brand-name">Agenda · Recordatorio · Citas</div>
+      <div class="brand-sub">Gestión de citas clínicas</div>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn-icon" onclick="checkUpcoming()">🔔 Pendientes</button>
+    <button class="btn-icon" onclick="initNotifications()" title="Activar notificaciones automáticas">🔕 Notif.</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('dashboard')" id="tab-dashboard">
+    📊 Inicio
+  </button>
+  <button class="tab" onclick="showTab('patients')" id="tab-patients">
+    👥 Pacientes
+  </button>
+  <button class="tab" onclick="showTab('appointments')" id="tab-appointments">
+    📅 Citas <span class="tab-badge" id="apt-badge" style="display:none">0</span>
+  </button>
+</div>
+
+<!-- ═══════════════ DASHBOARD ═══════════════ -->
+<div class="page active" id="page-dashboard">
+  <div id="alert-area"></div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-num" id="stat-patients">0</div>
+      <div class="stat-label">Pacientes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-today">0</div>
+      <div class="stat-label">Citas hoy</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-week">0</div>
+      <div class="stat-label">Esta semana</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-pending-rem">0</div>
+      <div class="stat-label">Recordatorios pendientes</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📅 Citas de hoy</span>
+      <button class="btn btn-primary btn-sm" onclick="showTab('appointments'); openAptModal()">+ Nueva cita</button>
+    </div>
+    <div id="today-list">
+      <div class="empty"><div class="empty-icon">📆</div><div class="empty-text">No hay citas programadas para hoy.</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">⏰ Próximas citas (7 días)</span>
+    </div>
+    <div id="upcoming-list">
+      <div class="empty"><div class="empty-icon">🗓</div><div class="empty-text">No hay citas en los próximos 7 días.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ PATIENTS ═══════════════ -->
+<div class="page" id="page-patients">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Directorio de Pacientes</span>
+      <button class="btn btn-primary btn-sm" onclick="openPatientModal()">+ Agregar</button>
+    </div>
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="patient-search" placeholder="Buscar por nombre..." oninput="renderPatients()">
+    </div>
+    <div id="patient-list">
+      <div class="empty"><div class="empty-icon">👥</div><div class="empty-text">Aún no hay pacientes. Agrega el primero.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ APPOINTMENTS ═══════════════ -->
+<div class="page" id="page-appointments">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Agenda de Citas</span>
+      <button class="btn btn-primary btn-sm" onclick="openAptModal()">+ Agendar cita</button>
+    </div>
+    <div id="apt-list">
+      <div class="empty"><div class="empty-icon">📅</div><div class="empty-text">No hay citas agendadas aún.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL PACIENTE ════ -->
+<div class="modal-overlay" id="modal-patient">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="patient-modal-title">Nuevo Paciente</span>
+      <button class="modal-close" onclick="closeModal('modal-patient')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nombre completo *</label>
+        <input type="text" id="p-name" placeholder="Ej: Richard Rojas">
+      </div>
+      <div class="form-group">
+        <label>Número WhatsApp * (con código de país)</label>
+        <input type="text" id="p-phone" placeholder="Ej: 51987654321">
+      </div>
+      <div class="form-group">
+        <label>Diagnóstico / Etiquetas</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+          <label style="text-transform:none;font-weight:400;display:flex;align-items:center;gap:4px;font-size:0.85rem;">
+            <input type="checkbox" id="tag-tdah" style="width:auto"> TDAH
+          </label>
+          <label style="text-transform:none;font-weight:400;display:flex;align-items:center;gap:4px;font-size:0.85rem;">
+            <input type="checkbox" id="tag-ansiedad" style="width:auto"> Ansiedad
+          </label>
+          <label style="text-transform:none;font-weight:400;display:flex;align-items:center;gap:4px;font-size:0.85rem;">
+            <input type="checkbox" id="tag-resistencia" style="width:auto"> Resistencia al cambio
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notas clínicas</label>
+        <textarea id="p-notes" placeholder="Observaciones relevantes..."></textarea>
+      </div>
+      <input type="hidden" id="p-edit-id">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-patient')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePatient()">Guardar paciente</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL CITA ════ -->
+<div class="modal-overlay" id="modal-apt">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="apt-modal-title">Agendar Cita</span>
+      <button class="modal-close" onclick="closeModal('modal-apt')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Paciente *</label>
+        <div class="autocomplete-wrap">
+          <input type="text" class="autocomplete-input" id="apt-patient-input"
+            placeholder="Escribe nombre del paciente..." autocomplete="off"
+            oninput="acFilter()" onfocus="acFilter()" onkeydown="acKeydown(event)">
+          <div class="autocomplete-list" id="apt-ac-list"></div>
+        </div>
+        <div id="apt-patient-chip" style="display:none"></div>
+        <input type="hidden" id="apt-patient">
+        <input type="file" id="vcf-file-input" accept=".vcf" style="display:none" onchange="importVCF(event)">
+        <button class="vcf-btn" onclick="document.getElementById('vcf-file-input').click()">
+          📇 Importar contacto desde vCard (.vcf) — agrega nuevo paciente
+        </button>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fecha *</label>
+          <input type="date" id="apt-date">
+        </div>
+        <div class="form-group">
+          <label>Hora *</label>
+          <input type="time" id="apt-time">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Modalidad</label>
+        <select id="apt-mode">
+          <option value="presencial">Presencial</option>
+          <option value="virtual">Virtual (videollamada)</option>
+          <option value="telefonica">Telefónica</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notas de la cita</label>
+        <input type="text" id="apt-notes" placeholder="Ej: Traer autorregistros">
+      </div>
+      <input type="hidden" id="apt-edit-id">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-apt')">Cancelar</button>
+      <button class="btn btn-primary" id="apt-save-btn" onclick="saveAppointment()">Agendar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL RECORDATORIO ════ -->
+<div class="modal-overlay" id="modal-reminder">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">📱 Enviar Recordatorio</span>
+      <button class="modal-close" onclick="closeModal('modal-reminder')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="wa-preview-label">Vista previa del mensaje</div>
+      <div class="wa-preview" id="wa-msg-preview">...</div>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-top:8px;">
+        Al tocar "Abrir WhatsApp", se abrirá la app con este mensaje listo. Solo debes presionar <strong>Enviar</strong>.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-reminder')">Cancelar</button>
+      <button class="btn btn-whatsapp" id="wa-open-btn" onclick="openWhatsApp()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+        Abrir WhatsApp
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  DATA STORE (localStorage)
+// ═══════════════════════════════════════════
+const DB = {
+  patients: () => JSON.parse(localStorage.getItem('cr_patients') || '[]'),
+  savePatients: d => localStorage.setItem('cr_patients', JSON.stringify(d)),
+  appointments: () => JSON.parse(localStorage.getItem('cr_appointments') || '[]'),
+  saveAppointments: d => localStorage.setItem('cr_appointments', JSON.stringify(d)),
+};
+
+let _waPhone = '';
+let _waMsg = '';
+
+// ═══════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════
+function showTab(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+  if (id === 'patients') renderPatients();
+  if (id === 'appointments') renderAppointments();
+  if (id === 'dashboard') renderDashboard();
+}
+
+// ═══════════════════════════════════════════
+//  MODALS
+// ═══════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ═══════════════════════════════════════════
+//  PATIENTS
+// ═══════════════════════════════════════════
+function openPatientModal(id = null) {
+  document.getElementById('p-name').value = '';
+  document.getElementById('p-phone').value = '';
+  document.getElementById('p-notes').value = '';
+  document.getElementById('p-edit-id').value = '';
+  document.getElementById('tag-tdah').checked = false;
+  document.getElementById('tag-ansiedad').checked = false;
+  document.getElementById('tag-resistencia').checked = false;
+  document.getElementById('patient-modal-title').textContent = id ? 'Editar Paciente' : 'Nuevo Paciente';
+
+  if (id) {
+    const p = DB.patients().find(x => x.id === id);
+    if (p) {
+      document.getElementById('p-name').value = p.name;
+      document.getElementById('p-phone').value = p.phone;
+      document.getElementById('p-notes').value = p.notes || '';
+      document.getElementById('p-edit-id').value = p.id;
+      if (p.tags) {
+        document.getElementById('tag-tdah').checked = p.tags.includes('tdah');
+        document.getElementById('tag-ansiedad').checked = p.tags.includes('ansiedad');
+        document.getElementById('tag-resistencia').checked = p.tags.includes('resistencia');
+      }
+    }
+  }
+  openModal('modal-patient');
+}
+
+function savePatient() {
+  const name = document.getElementById('p-name').value.trim();
+  const phone = document.getElementById('p-phone').value.trim().replace(/\D/g,'');
+  if (!name || !phone) { alert('Nombre y teléfono son obligatorios.'); return; }
+  const tags = [];
+  if (document.getElementById('tag-tdah').checked) tags.push('tdah');
+  if (document.getElementById('tag-ansiedad').checked) tags.push('ansiedad');
+  if (document.getElementById('tag-resistencia').checked) tags.push('resistencia');
+
+  const patients = DB.patients();
+  const editId = document.getElementById('p-edit-id').value;
+  if (editId) {
+    const idx = patients.findIndex(p => p.id === editId);
+    if (idx > -1) { patients[idx] = { ...patients[idx], name, phone, notes: document.getElementById('p-notes').value.trim(), tags }; }
+  } else {
+    patients.push({ id: 'p_' + Date.now(), name, phone, notes: document.getElementById('p-notes').value.trim(), tags, createdAt: new Date().toISOString() });
+  }
+  DB.savePatients(patients);
+  closeModal('modal-patient');
+  renderPatients();
+  renderDashboard();
+  updateAptBadge();
+}
+
+function deletePatient(id) {
+  if (!confirm('¿Eliminar este paciente y sus citas?')) return;
+  DB.savePatients(DB.patients().filter(p => p.id !== id));
+  DB.saveAppointments(DB.appointments().filter(a => a.patientId !== id));
+  renderPatients(); renderDashboard(); updateAptBadge();
+}
+
+function renderPatients() {
+  const q = (document.getElementById('patient-search')?.value || '').toLowerCase();
+  const patients = DB.patients().filter(p => p.name.toLowerCase().includes(q));
+  const container = document.getElementById('patient-list');
+  if (!patients.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">No se encontraron pacientes.</div></div>';
+    return;
+  }
+  container.innerHTML = patients.map(p => {
+    const initials = p.name.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
+    const tagHtml = (p.tags || []).map(t => `<span class="tag ${t}">${t === 'tdah' ? 'TDAH' : t === 'ansiedad' ? 'Ansiedad' : 'Resistencia'}</span>`).join('');
+    return `
+    <div class="patient-item">
+      <div class="patient-avatar">${initials}</div>
+      <div class="patient-info">
+        <div class="patient-name">${p.name}</div>
+        <div class="patient-phone">📱 +${p.phone}</div>
+        <div class="patient-tags">${tagHtml}</div>
+      </div>
+      <div class="patient-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openPatientModal('${p.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deletePatient('${p.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+//  APPOINTMENTS
+// ═══════════════════════════════════════════
+function openAptModal(editId = null) {
+  document.getElementById('apt-patient-input').value = '';
+  document.getElementById('apt-patient').value = '';
+  document.getElementById('apt-patient-chip').style.display = 'none';
+  document.getElementById('apt-patient-chip').innerHTML = '';
+  document.getElementById('apt-ac-list').classList.remove('open');
+  document.getElementById('apt-date').value = '';
+  document.getElementById('apt-time').value = '';
+  document.getElementById('apt-notes').value = '';
+  document.getElementById('apt-edit-id').value = '';
+  document.getElementById('apt-modal-title').textContent = 'Agendar Cita';
+  document.getElementById('apt-save-btn').textContent = 'Agendar';
+
+  if (editId) {
+    const a = DB.appointments().find(x => x.id === editId);
+    const p = DB.patients().find(x => x.id === a.patientId);
+    if (a && p) {
+      document.getElementById('apt-edit-id').value = editId;
+      document.getElementById('apt-modal-title').textContent = 'Editar Cita';
+      document.getElementById('apt-save-btn').textContent = 'Guardar cambios';
+      document.getElementById('apt-date').value = a.date;
+      document.getElementById('apt-time').value = a.time;
+      document.getElementById('apt-notes').value = a.notes || '';
+      document.getElementById('apt-mode').value = a.mode || 'presencial';
+      acSelect(p.id, p.name, p.phone);
+    }
+  }
+  openModal('modal-apt');
+  setTimeout(() => {
+    if (!editId) document.getElementById('apt-patient-input').focus();
+  }, 100);
+}
+
+// ── AUTOCOMPLETE ──
+let acIdx = -1;
+
+function acFilter() {
+  const q = document.getElementById('apt-patient-input').value.toLowerCase();
+  const patients = DB.patients();
+  const list = document.getElementById('apt-ac-list');
+  // If a patient is already selected, clear it when user types again
+  if (document.getElementById('apt-patient').value) {
+    document.getElementById('apt-patient').value = '';
+    document.getElementById('apt-patient-chip').style.display = 'none';
+  }
+  const matches = q.length === 0
+    ? patients
+    : patients.filter(p => p.name.toLowerCase().includes(q));
+  acIdx = -1;
+  if (!matches.length) {
+    list.innerHTML = '<div class="autocomplete-empty">Sin resultados. Agrega el paciente primero.</div>';
+    list.classList.add('open');
+    return;
+  }
+  list.innerHTML = matches.map((p, i) => {
+    const initials = p.name.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
+    return `<div class="autocomplete-item" data-id="${p.id}" data-name="${p.name}" onmousedown="acSelect('${p.id}','${p.name.replace(/'/g,"\\'")}','${p.phone}')">
+      <div class="ac-avatar">${initials}</div>
+      <div><div class="ac-name">${p.name}</div><div class="ac-phone">+${p.phone}</div></div>
+    </div>`;
+  }).join('');
+  list.classList.add('open');
+}
+
+function acSelect(id, name, phone) {
+  document.getElementById('apt-patient').value = id;
+  document.getElementById('apt-patient-input').value = '';
+  document.getElementById('apt-ac-list').classList.remove('open');
+  const chip = document.getElementById('apt-patient-chip');
+  chip.style.display = 'flex';
+  chip.innerHTML = `<span class="chip-name">✅ ${name} <span style="font-weight:400;color:var(--text-muted)">+${phone}</span></span>
+    <button class="chip-clear" onclick="acClear()">✕</button>`;
+}
+
+function acClear() {
+  document.getElementById('apt-patient').value = '';
+  document.getElementById('apt-patient-input').value = '';
+  document.getElementById('apt-patient-chip').style.display = 'none';
+  document.getElementById('apt-patient-input').focus();
+}
+
+function acKeydown(e) {
+  const list = document.getElementById('apt-ac-list');
+  const items = list.querySelectorAll('.autocomplete-item');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') { acIdx = Math.min(acIdx+1, items.length-1); acHighlight(items); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { acIdx = Math.max(acIdx-1, 0); acHighlight(items); e.preventDefault(); }
+  else if (e.key === 'Enter' && acIdx >= 0) { items[acIdx].dispatchEvent(new MouseEvent('mousedown')); e.preventDefault(); }
+  else if (e.key === 'Escape') { list.classList.remove('open'); }
+}
+
+function acHighlight(items) {
+  items.forEach((el, i) => el.classList.toggle('selected', i === acIdx));
+  if (acIdx >= 0) items[acIdx].scrollIntoView({ block: 'nearest' });
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.autocomplete-wrap')) {
+    document.getElementById('apt-ac-list')?.classList.remove('open');
+  }
+});
+
+// ── VCARD IMPORT ──
+function importVCF(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    // Parse name
+    const fnMatch = text.match(/FN[^:]*:(.+)/);
+    const nMatch = text.match(/^N[;:]([^\n\r]+)/m);
+    let name = '';
+    if (fnMatch) {
+      name = fnMatch[1].trim();
+    } else if (nMatch) {
+      const parts = nMatch[1].split(';');
+      name = [parts[1], parts[0]].filter(Boolean).join(' ').trim();
+    }
+    // Parse phone
+    const telMatch = text.match(/TEL[^:]*:([+\d\s\-()]+)/);
+    let phone = telMatch ? telMatch[1].replace(/\D/g,'') : '';
+    // Remove leading 0 if no country code
+    if (phone.startsWith('0')) phone = '51' + phone.substring(1);
+
+    if (!name) { alert('No se pudo leer el nombre del contacto.'); return; }
+
+    // Check if already exists
+    const existing = DB.patients().find(p => p.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      acSelect(existing.id, existing.name, existing.phone);
+      alert(`✅ Paciente "${name}" ya existe en el directorio.`);
+      return;
+    }
+
+    if (confirm(`Importar contacto:\n👤 ${name}\n📱 +${phone}\n\n¿Agregar como nuevo paciente?`)) {
+      const patients = DB.patients();
+      const newP = { id: 'p_' + Date.now(), name, phone, notes: '', tags: [], createdAt: new Date().toISOString() };
+      patients.push(newP);
+      DB.savePatients(patients);
+      acSelect(newP.id, newP.name, newP.phone);
+      renderDashboard();
+      updateAptBadge();
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function saveAppointment() {
+  const patientId = document.getElementById('apt-patient').value;
+  const date = document.getElementById('apt-date').value;
+  const time = document.getElementById('apt-time').value;
+  const mode = document.getElementById('apt-mode').value;
+  const notes = document.getElementById('apt-notes').value.trim();
+  const editId = document.getElementById('apt-edit-id').value;
+  if (!patientId || !date || !time) { alert('Paciente, fecha y hora son obligatorios.'); return; }
+
+  const apts = DB.appointments();
+  if (editId) {
+    const idx = apts.findIndex(a => a.id === editId);
+    if (idx > -1) {
+      apts[idx] = { ...apts[idx], patientId, date, time, mode, notes };
+    }
+  } else {
+    apts.push({
+      id: 'a_' + Date.now(),
+      patientId, date, time, mode, notes,
+      sent24: false, sent1: false,
+      createdAt: new Date().toISOString()
+    });
+  }
+  DB.saveAppointments(apts);
+  closeModal('modal-apt');
+  renderAppointments();
+  renderDashboard();
+  updateAptBadge();
+}
+
+function deleteAppointment(id) {
+  const a = DB.appointments().find(x => x.id === id);
+  if (!a) return;
+  const p = DB.patients().find(x => x.id === a.patientId);
+  const name = p ? p.name : 'este paciente';
+  const dt = new Date(a.date + 'T' + a.time);
+  const dateStr = dt.toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long'});
+  const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+
+  let msg = `¿Eliminar la cita de ${name}\n📅 ${dateStr} a las ${timeStr}?`;
+  if (a.sent24 || a.sent1) {
+    msg += '\n\n⚠️ Ya se enviaron recordatorios para esta cita. El paciente fue notificado.';
+  }
+  if (!confirm(msg)) return;
+  DB.saveAppointments(DB.appointments().filter(x => x.id !== id));
+  renderAppointments(); renderDashboard(); updateAptBadge();
+}
+
+function renderAppointments() {
+  const apts = DB.appointments().sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const container = document.getElementById('apt-list');
+  if (!apts.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">No hay citas agendadas.</div></div>';
+    return;
+  }
+  const patients = DB.patients();
+  container.innerHTML = apts.map(a => {
+    const p = patients.find(x => x.id === a.patientId);
+    if (!p) return '';
+    const dtStr = a.date + 'T' + a.time;
+    const dt = new Date(dtStr);
+    const day = dt.getDate().toString().padStart(2,'0');
+    const month = dt.toLocaleDateString('es', {month:'short'});
+    const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+    const now = new Date();
+    const diff = dt - now;
+    const hrs = diff / 3600000;
+
+    const isPast = hrs <= 0;
+
+    let rem24class = a.sent24 ? 'sent' : 'pending-24';
+    let rem1class = a.sent1 ? 'sent' : 'pending-1';
+
+    // Show 24h pill if future and not yet sent (always visible, not just in window)
+    const rem24 = (!isPast && hrs > 1) || a.sent24 ? `<span class="reminder-pill ${rem24class}" onclick="${a.sent24 ? '' : `triggerReminder('${a.id}','24')`}">${a.sent24 ? '✓ 24h enviado' : '⏰ Recordatorio 24h'}</span>` : '';
+    // Show 1h pill if future and not yet sent
+    const rem1 = (!isPast) || a.sent1 ? `<span class="reminder-pill ${rem1class}" onclick="${a.sent1 ? '' : `triggerReminder('${a.id}','1')`}">${a.sent1 ? '✓ 1h enviado' : '🔴 Recordatorio 1h'}</span>` : '';
+    // Always show "now" pill if appointment is in future or today
+    const remNow = !isPast ? `<span class="reminder-pill now" onclick="triggerReminder('${a.id}','now')">📲 Enviar ahora</span>` : '';
+
+    const modeIcon = a.mode === 'virtual' ? '💻' : a.mode === 'telefonica' ? '📞' : '🏥';
+
+    return `
+    <div class="apt-item">
+      <div class="apt-header">
+        <div class="apt-date-block">
+          <div class="apt-day">${day}</div>
+          <div class="apt-month">${month}</div>
+        </div>
+        <div class="apt-info">
+          <div class="apt-patient-name">${p.name}</div>
+          <div class="apt-time">${modeIcon} ${timeStr} · ${a.mode}${a.notes ? ' · ' + a.notes : ''}</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="openAptModal('${a.id}')" title="Editar cita">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteAppointment('${a.id}')" title="Eliminar cita">✕</button>
+      </div>
+      <div class="apt-reminders">${rem24}${rem1}${remNow}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+//  REMINDERS
+// ═══════════════════════════════════════════
+function greetingByHour() {
+  const h = new Date().getHours();
+  if (h < 12) return 'buenos días';
+  if (h < 19) return 'buenas tardes';
+  return 'buenas noches';
+}
+
+function buildMsg(patient, apt, type) {
+  const dt = new Date(apt.date + 'T' + apt.time);
+  const timeStr = dt.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  const firstName = patient.name.split(' ')[0];
+  const greeting = greetingByHour();
+  const modeStr = apt.mode === 'virtual' ? 'nuestra sesión virtual' : apt.mode === 'telefonica' ? 'nuestra sesión telefónica' : 'nuestra cita';
+
+  const payText = '\n\nPara confirmar tu cita, agradecería que envíes el voucher de pago (YAPE/PLIN) al número *51 995410502* por este mismo medio.';
+  const firma = '\n\n— Richard C. P. 📅';
+
+  if (type === '24') {
+    return `${firstName}, ${greeting} 😊\n\nTe recuerdo que *mañana* tenemos ${modeStr} a las *${timeStr}*.${payText}\n\nTe espero puntual. Cualquier novedad, avísame con anticipación.${firma}`;
+  } else if (type === '1') {
+    return `${firstName}, ${greeting} 😊\n\nTe recuerdo que *en aproximadamente 1 hora* es ${modeStr} (${timeStr}).${payText}\n\n¡Nos vemos pronto!${firma}`;
+  } else {
+    const dateStr = new Date(apt.date + 'T' + apt.time).toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long'});
+    return `${firstName}, ${greeting} 😊\n\nTe escribo para recordarte ${modeStr} programada para *${dateStr} a las ${timeStr}*.${payText}\n\nCualquier consulta, aquí estoy.${firma}`;
+  }
+}
+
+function triggerReminder(aptId, type) {
+  const apts = DB.appointments();
+  const a = apts.find(x => x.id === aptId);
+  const p = DB.patients().find(x => x.id === a.patientId);
+  if (!a || !p) return;
+
+  _waPhone = p.phone;
+  _waMsg = buildMsg(p, a, type);
+
+  document.getElementById('wa-msg-preview').innerHTML = _waMsg.replace(/\*(.*?)\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+  document.getElementById('wa-open-btn').dataset.aptId = aptId;
+  document.getElementById('wa-open-btn').dataset.type = type;
+  openModal('modal-reminder');
+}
+
+function openWhatsApp() {
+  const btn = document.getElementById('wa-open-btn');
+  const aptId = btn.dataset.aptId;
+  const type = btn.dataset.type;
+  const encoded = encodeURIComponent(_waMsg);
+  window.open(`https://wa.me/${_waPhone}?text=${encoded}`, '_blank');
+
+  // Mark as sent (only for scheduled reminders, not "now")
+  const apts = DB.appointments();
+  const idx = apts.findIndex(a => a.id === aptId);
+  if (idx > -1 && type !== 'now') {
+    if (type === '24') apts[idx].sent24 = true;
+    else if (type === '1') apts[idx].sent1 = true;
+    DB.saveAppointments(apts);
+  }
+  closeModal('modal-reminder');
+  renderAppointments();
+  renderDashboard();
+}
+
+// ═══════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════
+function renderDashboard() {
+  const patients = DB.patients();
+  const apts = DB.appointments();
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const in7 = new Date(now.getTime() + 7 * 86400000).toISOString().split('T')[0];
+
+  const todayApts = apts.filter(a => a.date === todayStr);
+  const weekApts = apts.filter(a => a.date >= todayStr && a.date <= in7);
+  
+  let pendingRem = 0;
+  apts.forEach(a => {
+    const dt = new Date(a.date + 'T' + a.time);
+    const diff = dt - now;
+    const hrs = diff / 3600000;
+    if (hrs > 0 && hrs <= 30 && !a.sent24) pendingRem++;
+    if (hrs > 0 && hrs <= 6 && !a.sent1) pendingRem++;
+  });
+
+  document.getElementById('stat-patients').textContent = patients.length;
+  document.getElementById('stat-today').textContent = todayApts.length;
+  document.getElementById('stat-week').textContent = weekApts.length;
+  document.getElementById('stat-pending-rem').textContent = pendingRem;
+
+  // Today list
+  const todayEl = document.getElementById('today-list');
+  if (!todayApts.length) {
+    todayEl.innerHTML = '<div class="empty"><div class="empty-icon">📆</div><div class="empty-text">No hay citas para hoy.</div></div>';
+  } else {
+    todayEl.innerHTML = todayApts.sort((a,b)=>a.time.localeCompare(b.time)).map(a => {
+      const p = patients.find(x => x.id === a.patientId);
+      if (!p) return '';
+      const dt = new Date(a.date + 'T' + a.time);
+      const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+      return `
+      <div class="today-apt">
+        <div class="today-apt-left">
+          <div class="name">${p.name}</div>
+          <div class="time">🕐 ${timeStr} · ${a.mode}</div>
+        </div>
+        <button class="btn btn-whatsapp btn-sm" onclick="showTab('appointments')">Ver</button>
+      </div>`;
+    }).join('');
+  }
+
+  // Upcoming (excluye hoy)
+  const upEl = document.getElementById('upcoming-list');
+  const upcoming = apts.filter(a => a.date > todayStr && a.date <= in7).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  if (!upcoming.length) {
+    upEl.innerHTML = '<div class="empty"><div class="empty-icon">🗓</div><div class="empty-text">No hay citas próximas en 7 días.</div></div>';
+  } else {
+    upEl.innerHTML = upcoming.map(a => {
+      const p = patients.find(x => x.id === a.patientId);
+      if (!p) return '';
+      const dt = new Date(a.date + 'T' + a.time);
+      const dateStr = dt.toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long'});
+      const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+      return `
+      <div class="today-apt">
+        <div class="today-apt-left">
+          <div class="name">${p.name}</div>
+          <div class="time">📅 ${dateStr} · 🕐 ${timeStr}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Alerts
+  const alertEl = document.getElementById('alert-area');
+  if (pendingRem > 0) {
+    alertEl.innerHTML = `<div class="alert-banner">⚠️ Tienes <strong>${pendingRem} recordatorio${pendingRem > 1 ? 's' : ''}</strong> pendiente${pendingRem > 1 ? 's' : ''} de enviar. Ve a <strong>Citas</strong> para enviarlos.</div>`;
+  } else {
+    alertEl.innerHTML = '';
+  }
+}
+
+function updateAptBadge() {
+  const badge = document.getElementById('apt-badge');
+  const count = DB.appointments().length;
+  badge.textContent = count;
+  badge.style.display = count > 0 ? '' : 'none';
+}
+
+function checkUpcoming() {
+  showTab('appointments');
+  renderAppointments();
+}
+
+
+// ═══════════════════════════════════════════
+//  PIN LOCK
+// ═══════════════════════════════════════════
+let _pinBuffer = '';
+let _pinMode = 'check'; // 'check' | 'setup1' | 'setup2'
+let _pinTemp = '';
+
+function pinInit() {
+  const stored = localStorage.getItem('cr_pin');
+  const screen = document.getElementById('pin-screen');
+  const hint = document.getElementById('pin-hint');
+  const resetBtn = document.getElementById('pin-reset-btn');
+
+  if (!stored) {
+    // First time — setup mode
+    _pinMode = 'setup1';
+    hint.textContent = 'Primera vez: elige un PIN de 4 dígitos para proteger tu app.';
+    screen.classList.add('active');
+  } else {
+    // Returning — check mode
+    _pinMode = 'check';
+    hint.textContent = '';
+    resetBtn.style.display = '';
+    screen.classList.add('active');
+  }
+}
+
+function pinPress(digit) {
+  if (_pinBuffer.length >= 4) return;
+  _pinBuffer += digit;
+  pinUpdateDots();
+  if (_pinBuffer.length === 4) setTimeout(pinSubmit, 150);
+}
+
+function pinDel() {
+  _pinBuffer = _pinBuffer.slice(0, -1);
+  pinUpdateDots();
+}
+
+function pinUpdateDots() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById('d' + i).classList.toggle('filled', i < _pinBuffer.length);
+  }
+}
+
+function pinSubmit() {
+  const hint = document.getElementById('pin-hint');
+  const err = document.getElementById('pin-error');
+
+  if (_pinMode === 'setup1') {
+    _pinTemp = _pinBuffer;
+    _pinBuffer = '';
+    pinUpdateDots();
+    _pinMode = 'setup2';
+    hint.textContent = 'Confirma tu PIN ingresándolo de nuevo.';
+    err.textContent = '';
+
+  } else if (_pinMode === 'setup2') {
+    if (_pinBuffer === _pinTemp) {
+      localStorage.setItem('cr_pin', _pinBuffer);
+      pinUnlock();
+    } else {
+      err.textContent = 'Los PINs no coinciden. Intenta de nuevo.';
+      _pinBuffer = ''; _pinTemp = '';
+      pinUpdateDots();
+      _pinMode = 'setup1';
+      hint.textContent = 'Elige un PIN de 4 dígitos.';
+    }
+
+  } else {
+    // check
+    const stored = localStorage.getItem('cr_pin');
+    if (_pinBuffer === stored) {
+      pinUnlock();
+    } else {
+      document.getElementById('pin-error').textContent = 'PIN incorrecto. Intenta de nuevo.';
+      _pinBuffer = '';
+      pinUpdateDots();
+      // Shake animation
+      const screen = document.getElementById('pin-screen');
+      screen.style.animation = 'none';
+      setTimeout(() => screen.style.animation = '', 10);
+    }
+  }
+}
+
+function pinUnlock() {
+  document.getElementById('pin-screen').classList.remove('active');
+  document.getElementById('pin-error').textContent = '';
+  _pinBuffer = '';
+  pinUpdateDots();
+}
+
+function pinReset() {
+  if (confirm('¿Restablecer PIN? Necesitarás configurar uno nuevo.')) {
+    localStorage.removeItem('cr_pin');
+    _pinMode = 'setup1';
+    _pinBuffer = ''; _pinTemp = '';
+    pinUpdateDots();
+    document.getElementById('pin-hint').textContent = 'Elige un nuevo PIN de 4 dígitos.';
+    document.getElementById('pin-error').textContent = '';
+    document.getElementById('pin-reset-btn').style.display = 'none';
+    document.getElementById('pin-screen').classList.add('active');
+  }
+}
+
+// Lock on visibility change (when app goes to background)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    localStorage.setItem('cr_locked', '1');
+  } else {
+    if (localStorage.getItem('cr_locked') === '1' && localStorage.getItem('cr_pin')) {
+      localStorage.removeItem('cr_locked');
+      _pinBuffer = '';
+      _pinMode = 'check';
+      document.getElementById('pin-hint').textContent = '';
+      document.getElementById('pin-reset-btn').style.display = '';
+      pinUpdateDots();
+      document.getElementById('pin-screen').classList.add('active');
+    }
+  }
+});
+
+// Add PIN change option to topbar — inject after DOM ready
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+pinInit();
+renderDashboard();
+updateAptBadge();
+
+
+// ═══════════════════════════════════════════
+//  NOTIFICACIONES PUSH AUTOMÁTICAS
+// ═══════════════════════════════════════════
+async function requestNotifPermission() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  const result = await Notification.requestPermission();
+  return result === 'granted';
+}
+
+function scheduleNotifications() {
+  const apts = DB.appointments();
+  const now = new Date();
+  apts.forEach(a => {
+    const dt = new Date(a.date + 'T' + a.time);
+    const diff = dt - now;
+    if (diff <= 0) return;
+    const p = DB.patients().find(x => x.id === a.patientId);
+    if (!p) return;
+    const firstName = p.name.split(' ')[0];
+    const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+
+    // 24h before
+    const ms24 = diff - (24 * 3600000);
+    if (ms24 > 0 && ms24 < 86400000 && !a.sent24) {
+      setTimeout(() => {
+        if (Notification.permission === 'granted') {
+          new Notification('⏰ Recordatorio 24h — ConsultaRecuerda', {
+            body: `Mañana tienes cita con ${firstName} a las ${timeStr}. Toca para enviar el recordatorio.`,
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%231a4a4a"/><text x="32" y="46" font-size="36" text-anchor="middle">🧠</text></svg>',
+            tag: 'rem24_' + a.id,
+            requireInteraction: true
+          }).onclick = () => { window.focus(); showTab('appointments'); };
+        }
+      }, ms24);
+    }
+
+    // 1h before
+    const ms1 = diff - (3600000);
+    if (ms1 > 0 && ms1 < 7200000 && !a.sent1) {
+      setTimeout(() => {
+        if (Notification.permission === 'granted') {
+          new Notification('🔴 ¡En 1 hora! — ConsultaRecuerda', {
+            body: `En 1 hora tienes cita con ${firstName} a las ${timeStr}. Toca para enviar el recordatorio.`,
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%231a4a4a"/><text x="32" y="46" font-size="36" text-anchor="middle">🧠</text></svg>',
+            tag: 'rem1_' + a.id,
+            requireInteraction: true
+          }).onclick = () => { window.focus(); showTab('appointments'); };
+        }
+      }, ms1);
+    }
+  });
+}
+
+async function initNotifications() {
+  const granted = await requestNotifPermission();
+  if (granted) {
+    scheduleNotifications();
+    // Re-schedule every hour in case new appointments were added
+    setInterval(scheduleNotifications, 3600000);
+  }
+}
+
+// Auto-init notifications on load
+initNotifications();
+
+// Re-schedule when a new appointment is saved
+const _origSaveApt = saveAppointment;
+
+// ═══════════════════════════════════════════
+//  PWA — INSTALAR EN PANTALLA DE INICIO
+// ═══════════════════════════════════════════
+let _installPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _installPrompt = e;
+  document.getElementById('install-banner').style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').style.display = 'none';
+  _installPrompt = null;
+});
+
+function installApp() {
+  if (_installPrompt) {
+    _installPrompt.prompt();
+    _installPrompt.userChoice.then(result => {
+      if (result.outcome === 'accepted') {
+        document.getElementById('install-banner').style.display = 'none';
+      }
+      _installPrompt = null;
+    });
+  } else {
+    alert('Para instalar en iPhone/iPad:\n\n1. Toca el ícono compartir (□↑) en Safari\n2. Selecciona "Agregar a pantalla de inicio"\n3. Toca "Agregar"\n\n¡Listo! Aparecerá como app en tu pantalla de inicio.');
+  }
+}
+
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE = 'cr-v1';
+    self.addEventListener('install', e => { self.skipWaiting(); });
+    self.addEventListener('fetch', e => {
+      e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+    });
+  `;
+  const blob = new Blob([swCode], { type: 'application/javascript' });
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+}
+</script>
+
+<!-- BANNER INSTALAR -->
+<div id="install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#1a4a4a;color:white;padding:12px 16px;align-items:center;gap:12px;z-index:500;box-shadow:0 -4px 16px rgba(0,0,0,0.2);">
+  <div style="flex:1;font-size:0.85rem;">
+    <strong>Instalar Agenda · Recordatorio · Citas</strong><br>
+    <span style="opacity:0.75;font-size:0.75rem;">Gestión de citas y recordatorios WhatsApp</span>
+  </div>
+  <button onclick="installApp()" style="background:#25D366;color:white;border:none;border-radius:8px;padding:8px 16px;font-weight:700;font-size:0.85rem;cursor:pointer;">Instalar</button>
+  <button onclick="document.getElementById('install-banner').style.display='none'" style="background:rgba(255,255,255,0.15);color:white;border:none;border-radius:8px;padding:8px 10px;cursor:pointer;">✕</button>
+</div>
+</body>
+</html>
