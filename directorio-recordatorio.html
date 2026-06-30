@@ -344,6 +344,38 @@
     color: #1565c0;
     border-color: #90caf9;
   }
+  .reminder-pill.pay {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border-color: #81c784;
+  }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .status-badge.realizada { background: var(--green-pale); color: var(--green-ok); }
+  .status-badge.cancelada { background: var(--red-pale); color: var(--red-alert); }
+  .status-badge.no_asistio { background: var(--amber-pale); color: #8a5a00; }
+  .status-badge.pendiente { background: #eceff1; color: #607d8b; }
+  .history-item {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+  }
+  .history-info { flex: 1; }
+  .history-name { font-weight: 600; font-size: 0.9rem; }
+  .history-date { font-size: 0.78rem; color: var(--text-muted); }
   .reminder-pill:hover:not(.sent) { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
 
   /* ─── DASHBOARD ─── */
@@ -716,6 +748,9 @@
   <button class="tab" onclick="showTab('appointments')" id="tab-appointments">
     📅 Citas <span class="tab-badge" id="apt-badge" style="display:none">0</span>
   </button>
+  <button class="tab" onclick="showTab('history')" id="tab-history">
+    🗂 Historial
+  </button>
 </div>
 
 <!-- ═══════════════ DASHBOARD ═══════════════ -->
@@ -787,6 +822,69 @@
     </div>
     <div id="apt-list">
       <div class="empty"><div class="empty-icon">📅</div><div class="empty-text">No hay citas agendadas aún.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ HISTORIAL ═══════════════ -->
+<div class="page" id="page-history">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Historial de Citas</span>
+    </div>
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="history-search" placeholder="Buscar por nombre de paciente..." oninput="renderHistory()">
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+      <select id="history-filter" onchange="renderHistory()" style="width:auto;flex:1;min-width:140px;">
+        <option value="all">Todos los estados</option>
+        <option value="realizada">✅ Realizadas</option>
+        <option value="cancelada">❌ Canceladas</option>
+        <option value="no_asistio">⚠️ No asistió</option>
+        <option value="pendiente">⏳ Sin marcar</option>
+      </select>
+    </div>
+    <div id="history-list">
+      <div class="empty"><div class="empty-icon">🗂</div><div class="empty-text">Aún no hay citas en el historial.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL CONFIRMACIÓN GENÉRICO ════ -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <span class="modal-title" id="confirm-title">Confirmar acción</span>
+      <button class="modal-close" onclick="closeModal('modal-confirm')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirm-message" style="font-size:0.9rem;line-height:1.5;white-space:pre-line;"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-confirm')">Cancelar</button>
+      <button class="btn btn-danger" id="confirm-action-btn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL ESTADO DE CITA ════ -->
+<div class="modal-overlay" id="modal-status">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <span class="modal-title">¿Cómo se resolvió esta cita?</span>
+      <button class="modal-close" onclick="closeModal('modal-status')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;" id="status-patient-info"></p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="btn btn-full" style="background:var(--green-pale);color:var(--green-ok);border:1.5px solid #80cfa0;justify-content:flex-start;padding:12px 16px;" onclick="setAptStatus('realizada')">✅ Realizada — el paciente asistió</button>
+        <button class="btn btn-full" style="background:var(--red-pale);color:var(--red-alert);border:1.5px solid #f5a09a;justify-content:flex-start;padding:12px 16px;" onclick="setAptStatus('cancelada')">❌ Cancelada — se reprogramó o anuló con aviso</button>
+        <button class="btn btn-full" style="background:var(--amber-pale);color:#8a5a00;border:1.5px solid #f0c060;justify-content:flex-start;padding:12px 16px;" onclick="setAptStatus('no_asistio')">⚠️ No asistió — sin aviso previo</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-status')">Decidir después</button>
     </div>
   </div>
 </div>
@@ -937,6 +1035,7 @@ function showTab(id) {
   if (id === 'patients') renderPatients();
   if (id === 'appointments') renderAppointments();
   if (id === 'dashboard') renderDashboard();
+  if (id === 'history') renderHistory();
 }
 
 // ═══════════════════════════════════════════
@@ -1232,13 +1331,30 @@ function deleteAppointment(id) {
   if (a.sent24 || a.sent1) {
     msg += '\n\n⚠️ Ya se enviaron recordatorios para esta cita. El paciente fue notificado.';
   }
-  if (!confirm(msg)) return;
-  DB.saveAppointments(DB.appointments().filter(x => x.id !== id));
-  renderAppointments(); renderDashboard(); updateAptBadge();
+
+  document.getElementById('confirm-title').textContent = 'Eliminar cita';
+  document.getElementById('confirm-message').textContent = msg;
+  const btn = document.getElementById('confirm-action-btn');
+  btn.textContent = 'Sí, eliminar';
+  btn.onclick = function() {
+    DB.saveAppointments(DB.appointments().filter(x => x.id !== id));
+    closeModal('modal-confirm');
+    renderAppointments(); renderDashboard(); updateAptBadge(); renderHistory();
+  };
+  openModal('modal-confirm');
 }
 
 function renderAppointments() {
-  const apts = DB.appointments().sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  // Only show appointments that are still upcoming (not yet past, or past but unmarked within grace period)
+  const now = new Date();
+  const apts = DB.appointments()
+    .filter(a => {
+      const dt = new Date(a.date + 'T' + a.time);
+      // Show in active list if future, OR past but not yet classified (status undefined)
+      return dt > now || !a.status;
+    })
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+
   const container = document.getElementById('apt-list');
   if (!apts.length) {
     container.innerHTML = '<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">No hay citas agendadas.</div></div>';
@@ -1253,7 +1369,6 @@ function renderAppointments() {
     const day = dt.getDate().toString().padStart(2,'0');
     const month = dt.toLocaleDateString('es', {month:'short'});
     const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
-    const now = new Date();
     const diff = dt - now;
     const hrs = diff / 3600000;
 
@@ -1262,14 +1377,16 @@ function renderAppointments() {
     let rem24class = a.sent24 ? 'sent' : 'pending-24';
     let rem1class = a.sent1 ? 'sent' : 'pending-1';
 
-    // Show 24h pill if future and not yet sent (always visible, not just in window)
     const rem24 = (!isPast && hrs > 1) || a.sent24 ? `<span class="reminder-pill ${rem24class}" onclick="${a.sent24 ? '' : `triggerReminder('${a.id}','24')`}">${a.sent24 ? '✓ 24h enviado' : '⏰ Recordatorio 24h'}</span>` : '';
-    // Show 1h pill if future and not yet sent
     const rem1 = (!isPast) || a.sent1 ? `<span class="reminder-pill ${rem1class}" onclick="${a.sent1 ? '' : `triggerReminder('${a.id}','1')`}">${a.sent1 ? '✓ 1h enviado' : '🔴 Recordatorio 1h'}</span>` : '';
-    // Always show "now" pill if appointment is in future or today
     const remNow = !isPast ? `<span class="reminder-pill now" onclick="triggerReminder('${a.id}','now')">📲 Enviar ahora</span>` : '';
 
     const modeIcon = a.mode === 'virtual' ? '💻' : a.mode === 'telefonica' ? '📞' : '🏥';
+
+    // If appointment is past and unmarked, show a prompt to classify it
+    const pastPrompt = isPast && !a.status ? `<div class="apt-reminders" style="border-top:none;padding-top:0;">
+      <span class="reminder-pill" style="background:#eceff1;color:#455a64;border-color:#b0bec5;" onclick="openStatusModal('${a.id}')">📋 Marcar resultado de la cita</span>
+    </div>` : '';
 
     return `
     <div class="apt-item">
@@ -1285,7 +1402,93 @@ function renderAppointments() {
         <button class="btn btn-secondary btn-sm" onclick="openAptModal('${a.id}')" title="Editar cita">✏️</button>
         <button class="btn btn-danger btn-sm" onclick="deleteAppointment('${a.id}')" title="Eliminar cita">✕</button>
       </div>
-      <div class="apt-reminders">${rem24}${rem1}${remNow}</div>
+      ${!isPast ? `<div class="apt-reminders">${rem24}${rem1}${remNow}</div>
+      <div class="apt-reminders" style="border-top:none;padding-top:0;">
+        <span class="reminder-pill pay" onclick="sendPaymentReminder('${a.id}')">💲 Enviar mensaje de pago</span>
+      </div>` : pastPrompt}
+    </div>`;
+  }).join('');
+}
+
+// ── ESTADO DE CITA / HISTORIAL ──
+let _statusAptId = null;
+
+function openStatusModal(aptId) {
+  _statusAptId = aptId;
+  const a = DB.appointments().find(x => x.id === aptId);
+  const p = DB.patients().find(x => x.id === a.patientId);
+  const dt = new Date(a.date + 'T' + a.time);
+  const dateStr = dt.toLocaleDateString('es', {day:'numeric', month:'long'});
+  const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+  document.getElementById('status-patient-info').textContent = `${p ? p.name : ''} · ${dateStr} a las ${timeStr}`;
+  openModal('modal-status');
+}
+
+function setAptStatus(status) {
+  const apts = DB.appointments();
+  const idx = apts.findIndex(a => a.id === _statusAptId);
+  if (idx > -1) {
+    apts[idx].status = status;
+    apts[idx].statusDate = new Date().toISOString();
+    DB.saveAppointments(apts);
+  }
+  closeModal('modal-status');
+  renderAppointments();
+  renderHistory();
+  renderDashboard();
+  updateAptBadge();
+}
+
+function renderHistory() {
+  const now = new Date();
+  const search = (document.getElementById('history-search')?.value || '').toLowerCase();
+  const filter = document.getElementById('history-filter')?.value || 'all';
+  const patients = DB.patients();
+
+  let apts = DB.appointments().filter(a => {
+    const dt = new Date(a.date + 'T' + a.time);
+    return dt <= now; // only past appointments appear in history
+  });
+
+  apts = apts.map(a => {
+    const p = patients.find(x => x.id === a.patientId);
+    return { ...a, _patientName: p ? p.name : '(paciente eliminado)' };
+  });
+
+  if (search) apts = apts.filter(a => a._patientName.toLowerCase().includes(search));
+  if (filter !== 'all') {
+    if (filter === 'pendiente') apts = apts.filter(a => !a.status);
+    else apts = apts.filter(a => a.status === filter);
+  }
+
+  apts.sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+
+  const container = document.getElementById('history-list');
+  if (!apts.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">🗂</div><div class="empty-text">No hay citas en el historial todavía.</div></div>';
+    return;
+  }
+
+  const statusLabels = {
+    realizada: '✅ Realizada',
+    cancelada: '❌ Cancelada',
+    no_asistio: '⚠️ No asistió'
+  };
+
+  container.innerHTML = apts.map(a => {
+    const dt = new Date(a.date + 'T' + a.time);
+    const dateStr = dt.toLocaleDateString('es', {day:'numeric', month:'short', year:'numeric'});
+    const timeStr = dt.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+    const badge = a.status
+      ? `<span class="status-badge ${a.status}">${statusLabels[a.status]}</span>`
+      : `<span class="status-badge pendiente" style="cursor:pointer;" onclick="openStatusModal('${a.id}')">⏳ Marcar</span>`;
+    return `
+    <div class="history-item">
+      <div class="history-info">
+        <div class="history-name">${a._patientName}</div>
+        <div class="history-date">📅 ${dateStr} · 🕐 ${timeStr}</div>
+      </div>
+      ${badge}
     </div>`;
   }).join('');
 }
@@ -1293,6 +1496,36 @@ function renderAppointments() {
 // ═══════════════════════════════════════════
 //  REMINDERS
 // ═══════════════════════════════════════════
+function copyPaymentNumber() {
+  const number = '51 995410502';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(number).then(() => {
+      showCopyToast();
+    }).catch(() => {
+      fallbackCopy(number);
+    });
+  } else {
+    fallbackCopy(number);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showCopyToast(); } catch(e) {}
+  document.body.removeChild(ta);
+}
+
+function showCopyToast() {
+  const toast = document.createElement('div');
+  toast.textContent = '✅ Número copiado: 51 995410502';
+  toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a4a4a;color:white;padding:10px 18px;border-radius:24px;font-size:0.85rem;z-index:1000;box-shadow:0 4px 16px rgba(0,0,0,0.3);';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2200);
+}
+
 function greetingByHour() {
   const h = new Date().getHours();
   if (h < 12) return 'buenos días';
@@ -1307,17 +1540,31 @@ function buildMsg(patient, apt, type) {
   const greeting = greetingByHour();
   const modeStr = apt.mode === 'virtual' ? 'nuestra sesión virtual' : apt.mode === 'telefonica' ? 'nuestra sesión telefónica' : 'nuestra cita';
 
-  const payText = '\n\nPara confirmar tu cita, agradecería que envíes el voucher de pago (YAPE/PLIN) al número *51 995410502* por este mismo medio.';
   const firma = '\n\n— Richard C. P. 📅';
 
   if (type === '24') {
-    return `${firstName}, ${greeting} 😊\n\nTe recuerdo que *mañana* tenemos ${modeStr} a las *${timeStr}*.${payText}\n\nTe espero puntual. Cualquier novedad, avísame con anticipación.${firma}`;
+    return `${firstName}, ${greeting} 😊\n\nTe recuerdo que *mañana* tenemos ${modeStr} a las *${timeStr}*.\n\nTe espero puntual. Cualquier novedad, avísame con anticipación.${firma}`;
   } else if (type === '1') {
-    return `${firstName}, ${greeting} 😊\n\nTe recuerdo que *en aproximadamente 1 hora* es ${modeStr} (${timeStr}).${payText}\n\n¡Nos vemos pronto!${firma}`;
+    return `${firstName}, ${greeting} 😊\n\nTe recuerdo que *en aproximadamente 1 hora* es ${modeStr} (${timeStr}).\n\n¡Nos vemos pronto!${firma}`;
   } else {
     const dateStr = new Date(apt.date + 'T' + apt.time).toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long'});
-    return `${firstName}, ${greeting} 😊\n\nTe escribo para recordarte ${modeStr} programada para *${dateStr} a las ${timeStr}*.${payText}\n\nCualquier consulta, aquí estoy.${firma}`;
+    return `${firstName}, ${greeting} 😊\n\nTe escribo para recordarte ${modeStr} programada para *${dateStr} a las ${timeStr}*.\n\nCualquier consulta, aquí estoy.${firma}`;
   }
+}
+
+function buildPaymentMsg(patient) {
+  const firstName = patient.name.split(' ')[0];
+  return `${firstName}, para confirmar tu cita agradecería que envíes el voucher de pago (YAPE/PLIN) a este número:\n\n📲 *51 995410502*\n\n¡Gracias!`;
+}
+
+function sendPaymentReminder(aptId) {
+  const apts = DB.appointments();
+  const a = apts.find(x => x.id === aptId);
+  const p = DB.patients().find(x => x.id === a.patientId);
+  if (!a || !p) return;
+  const msg = buildPaymentMsg(p);
+  const encoded = encodeURIComponent(msg);
+  window.open(`https://wa.me/${p.phone}?text=${encoded}`, '_blank');
 }
 
 function triggerReminder(aptId, type) {
@@ -1436,7 +1683,11 @@ function renderDashboard() {
 
 function updateAptBadge() {
   const badge = document.getElementById('apt-badge');
-  const count = DB.appointments().length;
+  const now = new Date();
+  const count = DB.appointments().filter(a => {
+    const dt = new Date(a.date + 'T' + a.time);
+    return dt > now || !a.status;
+  }).length;
   badge.textContent = count;
   badge.style.display = count > 0 ? '' : 'none';
 }
